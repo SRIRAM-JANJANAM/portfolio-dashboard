@@ -1,0 +1,10 @@
+[
+  { "id": 1, "name": "HDFC Bank", "ticker": "HDFCBANK.NS", "sector": "Financials", "qty": 50, "buyPrice": 1490 },
+  { "id": 2, "name": "Bajaj Finance", "ticker": "BAJFINANCE.NS", "sector": "Financials", "qty": 15, "buyPrice": 6466 },
+  { "id": 3, "name": "ICICI Bank", "ticker": "ICICIBANK.NS", "sector": "Financials", "qty": 84, "buyPrice": 780 },
+  { "id": 4, "name": "Affle India", "ticker": "AFFLE.NS", "sector": "Technology", "qty": 50, "buyPrice": 1151 },
+  { "id": 5, "name": "LTI Mindtree", "ticker": "LTIM.NS", "sector": "Technology", "qty": 16, "buyPrice": 4775 },
+  { "id": 6, "name": "Tata Power", "ticker": "TATAPOWER.NS", "sector": "Power", "qty": 225, "buyPrice": 224 },
+  { "id": 7, "name": "Suzlon", "ticker": "SUZLON.NS", "sector": "Power", "qty": 450, "buyPrice": 44 },
+  { "id": 8, "name": "Tata Consumer", "ticker": "TATACONSUM.NS", "sector": "Consumer", "qty": 90, "buyPrice": 845 }
+]
