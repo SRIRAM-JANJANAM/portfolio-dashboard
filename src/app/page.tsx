@@ -125,7 +125,9 @@ export default function PortfolioDashboard() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: number) => `₹${value.toLocaleString()}`} />
+                  <Tooltip 
+                    formatter={(value: number | undefined) => `₹${value?.toLocaleString()}`} 
+                  />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
