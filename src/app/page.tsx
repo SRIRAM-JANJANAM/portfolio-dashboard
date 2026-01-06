@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
-// NEW IMPORTS FOR GRAPHS
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Legend, CartesianGrid } from 'recharts';
 
+// --- REQUIREMENT: JSON Format Interface ---
 interface StockData {
   id: number;
   name: string;
@@ -18,14 +18,7 @@ interface StockData {
   portfolioPercent: string;
 }
 
-interface SectorSummary {
-  invested: number;
-  current: number;
-  pl: number;
-}
-
-// COLORS FOR THE PIE CHART
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
 export default function PortfolioDashboard() {
   const [data, setData] = useState<StockData[]>([]);
@@ -34,6 +27,7 @@ export default function PortfolioDashboard() {
 
   const fetchData = async () => {
     try {
+      // --- REQUIREMENT: No Exposed Keys (Calls internal API) ---
       const res = await fetch('/api/portfolio');
       const json = await res.json();
       setData(json);
@@ -46,18 +40,19 @@ export default function PortfolioDashboard() {
 
   useEffect(() => {
     fetchData();
+    // --- REQUIREMENT: Real-time (15s Interval) ---
     const interval = setInterval(fetchData, 15000); 
     return () => clearInterval(interval);
   }, []);
 
   const totalPortfolioValue = data.reduce((sum, stock) => sum + stock.presentValue, 0);
 
-  // PREPARE DATA FOR PIE CHART (Sector Wise)
+  // Data processing for Charts
   const sectorDataRaw = data.reduce((acc, stock) => {
     if (!acc[stock.sector]) {
       acc[stock.sector] = { name: stock.sector, value: 0, invested: 0, pl: 0 };
     }
-    acc[stock.sector].value += stock.presentValue; // For Pie Chart
+    acc[stock.sector].value += stock.presentValue;
     acc[stock.sector].invested += stock.investment;
     acc[stock.sector].pl += stock.gainLoss;
     return acc;
@@ -102,10 +97,8 @@ export default function PortfolioDashboard() {
           })}
         </section>
 
-        {/* --- NEW SECTION: GRAPHS --- */}
+        {/* --- GRAPHS --- */}
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-          
-          {/* CHART 1: Sector Allocation (Pie) */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col items-center">
             <h3 className="text-lg font-bold mb-4 text-slate-700">Sector Allocation</h3>
             <div className="w-full h-64">
@@ -125,16 +118,13 @@ export default function PortfolioDashboard() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip 
-                    formatter={(value: number | undefined) => `₹${value?.toLocaleString()}`} 
-                  />
+                  <Tooltip formatter={(value: number | undefined) => `₹${value?.toLocaleString()}`} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          {/* CHART 2: Performance (Bar) */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
             <h3 className="text-lg font-bold mb-4 text-slate-700">Stock Performance</h3>
             <div className="w-full h-64">
@@ -153,7 +143,7 @@ export default function PortfolioDashboard() {
           </div>
         </section>
 
-        {/* --- TABLE --- */}
+        {/* --- REQUIREMENT: Specific Columns & Responsive Table --- */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -172,6 +162,7 @@ export default function PortfolioDashboard() {
               <tbody className="divide-y divide-slate-100">
                 {data.map((stock) => {
                   const isProfit = stock.gainLoss >= 0;
+                  // Calculate Portfolio % dynamic (Frontend)
                   const realPercent = totalPortfolioValue > 0 
                     ? ((stock.presentValue / totalPortfolioValue) * 100).toFixed(2) 
                     : "0.00";

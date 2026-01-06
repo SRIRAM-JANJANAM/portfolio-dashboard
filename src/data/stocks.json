@@ -1,66 +1,52 @@
 [
   {
     "id": 1,
-    "name": "HDFC Bank",
-    "ticker": "HDFCBANK.NS",
-    "sector": "Financials",
-    "buyPrice": 1490,
+    "name": "Reliance Industries",
+    "ticker": "RELIANCE.NS",
+    "sector": "Energy",
+    "exchangeCode": "NSE",
+    "googleTicker": "RELIANCE:NSE",
+    "buyPrice": 2450.00,
     "qty": 50
   },
   {
     "id": 2,
-    "name": "Bajaj Finance",
-    "ticker": "BAJFINANCE.NS",
-    "sector": "Financials",
-    "buyPrice": 6466,
-    "qty": 15
+    "name": "Tata Consultancy Svcs",
+    "ticker": "TCS.NS",
+    "sector": "Technology",
+    "exchangeCode": "NSE",
+    "googleTicker": "TCS:NSE",
+    "buyPrice": 3800.50,
+    "qty": 30
   },
   {
     "id": 3,
-    "name": "ICICI Bank",
-    "ticker": "ICICIBANK.NS",
-    "sector": "Financials",
-    "buyPrice": 780,
-    "qty": 84
+    "name": "HDFC Bank",
+    "ticker": "HDFCBANK.NS",
+    "sector": "Finance",
+    "exchangeCode": "NSE",
+    "googleTicker": "HDFCBANK:NSE",
+    "buyPrice": 1600.00,
+    "qty": 100
   },
   {
     "id": 4,
-    "name": "Affle India",
-    "ticker": "AFFLE.NS",
+    "name": "Infosys",
+    "ticker": "INFY.NS",
     "sector": "Technology",
-    "buyPrice": 1151,
-    "qty": 50
+    "exchangeCode": "NSE",
+    "googleTicker": "INFY:NSE",
+    "buyPrice": 1450.00,
+    "qty": 45
   },
   {
     "id": 5,
-    "name": "LTI Mindtree",
-    "ticker": "LTIM.NS",
-    "sector": "Technology",
-    "buyPrice": 4775,
-    "qty": 16
-  },
-  {
-    "id": 6,
-    "name": "Tata Power",
-    "ticker": "TATAPOWER.NS",
-    "sector": "Power",
-    "buyPrice": 224,
-    "qty": 225
-  },
-  {
-    "id": 7,
-    "name": "Suzlon Energy",
-    "ticker": "SUZLON.NS",
-    "sector": "Power",
-    "buyPrice": 44,
-    "qty": 450
-  },
-  {
-    "id": 8,
-    "name": "Tata Consumer",
-    "ticker": "TATACONSUM.NS",
-    "sector": "Consumer",
-    "buyPrice": 845,
-    "qty": 90
+    "name": "ITC Limited",
+    "ticker": "ITC.NS",
+    "sector": "FMCG",
+    "exchangeCode": "NSE",
+    "googleTicker": "ITC:NSE",
+    "buyPrice": 420.00,
+    "qty": 200
   }
 ]
