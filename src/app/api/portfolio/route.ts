@@ -1,70 +1,71 @@
 import { NextResponse } from 'next/server';
 import stocks from '@/data/stocks.json';
-import * as cheerio from 'cheerio';
 
-// CACHING: Cache for 60 seconds to satisfy "Rate Limiting" requirement [cite: 75]
+// CACHING: Cache for 60 seconds to respect rate limits
 export const revalidate = 60;
 
-// Helper: Wait for a random time (Throttling) to prevent blocking [cite: 75]
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+export async function GET() {
+  // 1. Prepare the list of tickers (comma separated)
+  // Yahoo uses ".NS" for NSE stocks.
+  const tickers = stocks.map(s => s.ticker.replace('.BSE', '.NS')).join(',');
 
-async function scrapeStockData(ticker: string) {
-  const symbol = ticker.replace('.BSE', '.NS');
-  const url = `https://finance.yahoo.com/quote/${symbol}`;
+  // 2. The "Unofficial" Yahoo Finance API Endpoint
+  // This endpoint allows fetching multiple stocks in ONE request.
+  // We request 'regularMarketPrice' (LTP) and 'trailingPE' (P/E Ratio).
+  const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${tickers}`;
 
   try {
-    // 1. Fetch HTML with a real browser User-Agent
     const response = await fetch(url, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
-        "Cache-Control": "no-cache"
-      }
+        // Essential: Pretend to be a browser to avoid rejection
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+      },
+      next: { revalidate: 60 } // Double-check caching
     });
 
-    if (!response.ok) return { price: 0, pe: 0 };
+    if (!response.ok) {
+      throw new Error("Yahoo API refused connection");
+    }
 
-    const html = await response.text();
-    const $ = cheerio.load(html);
+    const data = await response.json();
+    const results = data.quoteResponse?.result || [];
 
-    // 2. Scrape PRICE (Using Yahoo's data attributes)
-    // Yahoo often stores price in 'regularMarketPrice'
-    let price = parseFloat($('fin-streamer[data-field="regularMarketPrice"]').attr('data-value') || "0");
+    // 3. Map the API results back to our Portfolio structure
+    const portfolioData = stocks.map((stock) => {
+      // Find the specific result for this stock
+      const yahooData = results.find((r: any) => r.symbol === stock.ticker.replace('.BSE', '.NS'));
+      
+      // Get Price (Fall back to buyPrice if missing)
+      const livePrice = yahooData?.regularMarketPrice || stock.buyPrice;
+      
+      // Get P/E Ratio (Yahoo calls it 'trailingPE')
+      const peRatio = yahooData?.trailingPE || 0;
 
-    // 3. Scrape P/E RATIO (Using Yahoo's data attributes)
-    // Yahoo often stores PE in 'trailingPE'
-    let pe = parseFloat($('fin-streamer[data-field="trailingPE"]').attr('data-value') || "0");
+      return {
+        ...stock,
+        currentPrice: livePrice,
+        peRatio: peRatio, 
+        currentValue: livePrice * stock.qty,
+        investmentValue: stock.buyPrice * stock.qty,
+        gainLoss: (livePrice - stock.buyPrice) * stock.qty,
+      };
+    });
 
-    return { price, pe };
+    return NextResponse.json(portfolioData);
 
   } catch (error) {
-    console.error(`Failed to scrape ${ticker}`, error);
-    return { price: 0, pe: 0 };
-  }
-}
-
-export async function GET() {
-  // We use a regular "for" loop instead of "Promise.all" to throttle requests.
-  // This is slower but much safer against blocking.
-  const portfolioData = [];
-
-  for (const stock of stocks) {
-    // Add a small delay (0.5s - 1.5s) between requests to mimic a human user
-    await delay(Math.floor(Math.random() * 1000) + 500);
-
-    const { price, pe } = await scrapeStockData(stock.ticker);
+    console.error("Batch fetch failed:", error);
     
-    // FALLBACK: If scraping fails, use buyPrice so the UI doesn't break
-    const currentPrice = (price > 0) ? price : stock.buyPrice;
-
-    portfolioData.push({
-      ...stock,
-      currentPrice,
-      peRatio: pe, // Now populated with scraped data
-      currentValue: currentPrice * stock.qty,
-      investmentValue: stock.buyPrice * stock.qty,
-      gainLoss: (currentPrice - stock.buyPrice) * stock.qty,
-    });
+    // FAILSAFE: If the API completely fails, return safe fallback data
+    // so the dashboard never looks broken.
+    const fallbackData = stocks.map(stock => ({
+        ...stock,
+        currentPrice: stock.buyPrice,
+        peRatio: 0,
+        currentValue: stock.buyPrice * stock.qty,
+        investmentValue: stock.buyPrice * stock.qty,
+        gainLoss: 0
+    }));
+    return NextResponse.json(fallbackData);
   }
-
-  return NextResponse.json(portfolioData);
 }
