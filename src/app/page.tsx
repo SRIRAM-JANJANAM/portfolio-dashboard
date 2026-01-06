@@ -131,7 +131,8 @@ export default function PortfolioDashboard() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(val: number) => `₹${val.toLocaleString()}`} />
+                  {/* FIX 1: Allow number OR undefined */}
+                  <Tooltip formatter={(val: number | undefined) => `₹${val?.toLocaleString()}`} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
@@ -146,11 +147,12 @@ export default function PortfolioDashboard() {
                 <BarChart data={portfolio}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   
-                  {/* CHANGED: Added 'hide' prop here to remove overlapping text */}
+                  {/* Hiding X Axis to prevent overlap */}
                   <XAxis dataKey="ticker" hide />
                   
                   <YAxis hide />
-                  <Tooltip formatter={(val: number) => `₹${val.toLocaleString()}`} />
+                  {/* FIX 2: Allow number OR undefined */}
+                  <Tooltip formatter={(val: number | undefined) => `₹${val?.toLocaleString()}`} />
                   <Legend />
                   <Bar dataKey="investment" name="Invested" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="presentValue" name="Current Value" fill="#4f46e5" radius={[4, 4, 0, 0]} />
