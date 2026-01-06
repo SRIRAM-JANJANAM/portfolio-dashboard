@@ -1,48 +1,44 @@
 import { NextResponse } from 'next/server';
 import stocks from '@/data/stocks.json';
 
-// Let's cache this for 15 seconds. 
-// If we spam Yahoo too much, they'll block our IP. 15s is a safe sweet spot.
+// Cache the response for 15 seconds to avoid hitting rate limits
 export const revalidate = 15; 
 
 export async function GET() {
   try {
-    // Plan A: Yahoo Finance (Unofficial but usually reliable)
-    // If this works, we're golden.
+    // 1. Attempt to fetch live data from Yahoo Finance
     const liveData = await getYahooPrices(stocks);
     if (liveData) return NextResponse.json(liveData);
 
-    // Plan B: Google Finance Logic (Just a skeleton for now)
-    // Yahoo failed, so we'd normally try scraping Google, but that's messy.
+    // 2. If Yahoo fails, attempt to fetch from Google Finance
     const backupData = await getGooglePrices(stocks);
     if (backupData) return NextResponse.json(backupData);
 
-    // If we're here, everything is on fire.
-    throw new Error("Both APIs ghosted us.");
+    // If both fail, throw an error to trigger the fallback
+    throw new Error("All data sources failed");
 
   } catch (error) {
-    // Plan C: The "Senior Dev" Save
-    // The API is down, but the boss wants to see the dashboard NOW.
-    // Generate some realistic fake data so the UI doesn't look broken.
-    console.warn("⚠️ APIs down. Switching to simulation mode.");
+    // 3. Fallback: Generate simulated data if APIs are unreachable
+    // This ensures the dashboard remains functional for demo purposes
+    console.warn("External APIs unavailable. Using simulated data.");
     const simulation = runSimulation(stocks);
     return NextResponse.json(simulation);
   }
 }
 
-// --- Helper 1: The Yahoo Fetcher ---
+// --- Fetch Data from Yahoo Finance ---
 async function getYahooPrices(stockList: any[]) {
-  // Yahoo needs symbols like "RELIANCE.NS" joined by commas
+  // Join tickers with commas for the API query
   const tickers = stockList.map(s => s.ticker).join(',');
   const url = `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${tickers}`;
 
   try {
-    // We need to look like a real browser, or Yahoo denies the request.
+    // Use a browser-like User-Agent to prevent the request from being blocked
     const response = await fetch(url, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       },
-      next: { revalidate: 15 } // Next.js specific caching
+      next: { revalidate: 15 }
     });
 
     if (!response.ok) return null;
@@ -52,64 +48,58 @@ async function getYahooPrices(stockList: any[]) {
 
     if (results.length === 0) return null;
 
-    // Map the live prices back to our stock list
+    // Map API results to the local stock list
     return stockList.map((stock) => {
       const match = results.find((r: any) => r.symbol === stock.ticker);
       
-      // If Yahoo misses a stock (rare), just use our buy price so math doesn't break
+      // Use buy price if current price is missing
       const currentPrice = match?.regularMarketPrice || stock.buyPrice;
       const pe = match?.trailingPE || 0;
       
-      return doTheMath(stock, currentPrice, pe);
+      return calculateMetrics(stock, currentPrice, pe);
     });
 
   } catch (e) {
-    console.error("Yahoo fetch failed. It happens.");
+    console.error("Yahoo Finance fetch failed");
     return null;
   }
 }
 
-// --- Helper 2: The Google Backup (Skeleton) ---
+// --- Fetch Data from Google Finance (Placeholder) ---
 async function getGooglePrices(stockList: any[]) {
-  // Heads up: Google Finance doesn't have a nice JSON API.
-  // We'd have to scrape HTML here, which is brittle and breaks often.
-  // Keeping this structure here just in case we add a scraper later.
-  
-  console.log("Trying Google structure (Simulated failure)...");
-  
+  // Placeholder for Google Finance scraping logic
+  // Currently simulates a failure as scraping requires HTML parsing
   try {
-    // Simulating a failure because we don't have a parser set up
-    throw new Error("Scraper not implemented yet");
+    throw new Error("Scraper not implemented");
   } catch (e) {
     return null;
   }
 }
 
-// --- The "Saved by the Bell" Generator ---
+// --- Generate Simulated Data ---
 function runSimulation(stockList: any[]) {
   return stockList.map(stock => {
-    // Fluctuate the price randomly between -2% and +5%
-    // This makes the dashboard look "alive" even when offline.
-    const noise = 1 + (Math.random() * 0.07 - 0.02); 
-    const fakePrice = Math.round(stock.buyPrice * noise * 100) / 100;
-    const fakePE = Math.round((20 + Math.random() * 15) * 100) / 100;
+    // vary price randomly between -2% and +5%
+    const variance = 1 + (Math.random() * 0.07 - 0.02); 
+    const simulatedPrice = Math.round(stock.buyPrice * variance * 100) / 100;
+    const simulatedPE = Math.round((20 + Math.random() * 15) * 100) / 100;
     
-    return doTheMath(stock, fakePrice, fakePE);
+    return calculateMetrics(stock, simulatedPrice, simulatedPE);
   });
 }
 
-// --- Common Math Logic ---
-function doTheMath(stock: any, price: number, pe: number) {
-  const investedVal = stock.buyPrice * stock.qty;
-  const currentVal = price * stock.qty;
+// --- Calculate Financial Metrics ---
+function calculateMetrics(stock: any, price: number, pe: number) {
+  const investmentValue = stock.buyPrice * stock.qty;
+  const currentValue = price * stock.qty;
   
   return {
     ...stock,
     cmp: price,
     pe: pe,
-    investment: investedVal,
-    presentValue: currentVal,
-    gainLoss: currentVal - investedVal,
-    portfolioPercent: "0" // We'll calc this on the frontend
+    investment: investmentValue,
+    presentValue: currentValue,
+    gainLoss: currentValue - investmentValue,
+    portfolioPercent: "0" // Calculated on the frontend
   };
 }
