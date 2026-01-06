@@ -9,7 +9,7 @@ export async function GET() {
     // If we did a loop, it would take forever to load 20+ stocks one by one.
     const promises = stocks.map(async (stock) => {
       try {
-        const quote = await yahooFinance.quote(stock.ticker);
+        const quote: any = await yahooFinance.quote(stock.ticker);
         
         // Yahoo gives us the "regularMarketPrice" (Live Price).
         // I'm also grabbing the P/E ratio here since scraping Google Finance is risky/unreliable.
