@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Legend, CartesianGrid } from 'recharts';
 
-// --- REQUIREMENT: JSON Format Interface ---
+// Just defining what our API returns so TypeScript doesn't yell at us
 interface StockData {
   id: number;
   name: string;
@@ -18,37 +18,44 @@ interface StockData {
   portfolioPercent: string;
 }
 
+// Nice color palette for the charts
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
 export default function PortfolioDashboard() {
-  const [data, setData] = useState<StockData[]>([]);
+  const [portfolio, setPortfolio] = useState<StockData[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState('');
 
-  const fetchData = async () => {
+  const refreshData = async () => {
     try {
-      // --- REQUIREMENT: No Exposed Keys (Calls internal API) ---
+      // Calling our own internal API route. 
+      // This hides the actual external API keys/logic from the browser.
       const res = await fetch('/api/portfolio');
-      const json = await res.json();
-      setData(json);
+      const data = await res.json();
+      
+      setPortfolio(data);
       setLastUpdated(new Date().toLocaleTimeString());
       setLoading(false);
     } catch (err) {
-      console.error("Failed to fetch");
+      console.error("Client fetch error - maybe the internet is down?");
     }
   };
 
   useEffect(() => {
-    fetchData();
-    // --- REQUIREMENT: Real-time (15s Interval) ---
-    const interval = setInterval(fetchData, 15000); 
-    return () => clearInterval(interval);
+    // Initial load
+    refreshData();
+
+    // Auto-refresh every 15 seconds so we feel like day traders
+    const timer = setInterval(refreshData, 15000); 
+    return () => clearInterval(timer);
   }, []);
 
-  const totalPortfolioValue = data.reduce((sum, stock) => sum + stock.presentValue, 0);
+  // Calculate the total once so we can use it for percentages later
+  const totalValue = portfolio.reduce((sum, item) => sum + item.presentValue, 0);
 
-  // Data processing for Charts
-  const sectorDataRaw = data.reduce((acc, stock) => {
+  // Grouping data for the Sector Pie Chart
+  // Basically summing up value per sector
+  const sectorMap = portfolio.reduce((acc, stock) => {
     if (!acc[stock.sector]) {
       acc[stock.sector] = { name: stock.sector, value: 0, invested: 0, pl: 0 };
     }
@@ -56,39 +63,44 @@ export default function PortfolioDashboard() {
     acc[stock.sector].invested += stock.investment;
     acc[stock.sector].pl += stock.gainLoss;
     return acc;
-  }, {} as Record<string, { name: string; value: number; invested: number; pl: number }>);
+  }, {} as Record<string, any>);
 
-  const sectorChartData = Object.values(sectorDataRaw);
+  const sectorData = Object.values(sectorMap);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-xl font-semibold text-gray-600">Loading Market Data...</div>;
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center text-xl font-medium text-slate-500">
+      Fetching market data...
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 font-sans text-slate-800">
       <div className="max-w-7xl mx-auto">
         
+        {/* Header Section */}
         <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <h1 className="text-3xl font-bold text-slate-900">Portfolio Dashboard</h1>
-          <div className="text-sm text-slate-500 bg-white px-4 py-2 rounded-lg shadow-sm border border-slate-200">
+          <h1 className="text-3xl font-bold text-slate-900">My Portfolio</h1>
+          <div className="text-sm text-slate-500 bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
             Last Updated: <span className="font-mono font-semibold text-slate-700">{lastUpdated}</span>
           </div>
         </header>
 
-        {/* --- SUMMARY CARDS --- */}
+        {/* Top Cards: Sector Breakdown */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          {sectorChartData.map((data, index) => {
-            const isProfit = data.pl >= 0;
+          {sectorData.map((s, i) => {
+            const isGreen = s.pl >= 0;
             return (
-              <div key={index} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                <h2 className="text-slate-400 uppercase text-xs font-bold tracking-wider mb-3">{data.name}</h2>
+              <div key={i} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <h2 className="text-slate-400 uppercase text-xs font-bold tracking-wider mb-3">{s.name}</h2>
                 <div className="flex justify-between items-end">
                   <div>
-                    <p className="text-sm text-slate-500 mb-1">Total Invested</p>
-                    <p className="text-lg font-semibold">₹{data.invested.toLocaleString()}</p>
+                    <p className="text-sm text-slate-500 mb-1">Invested</p>
+                    <p className="text-lg font-semibold">₹{s.invested.toLocaleString()}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-slate-500 mb-1">P&L</p>
-                    <p className={`text-xl font-bold ${isProfit ? 'text-emerald-600' : 'text-red-500'}`}>
-                      {isProfit ? '+' : ''}₹{data.pl.toLocaleString()}
+                    <p className={`text-xl font-bold ${isGreen ? 'text-emerald-600' : 'text-red-500'}`}>
+                      {isGreen ? '+' : ''}₹{s.pl.toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -97,43 +109,48 @@ export default function PortfolioDashboard() {
           })}
         </section>
 
-        {/* --- GRAPHS --- */}
+        {/* Charts Area */}
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col items-center">
-            <h3 className="text-lg font-bold mb-4 text-slate-700">Sector Allocation</h3>
+          
+          {/* Pie Chart */}
+          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center">
+            <h3 className="text-lg font-bold mb-4 text-slate-700">Allocation by Sector</h3>
             <div className="w-full h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={sectorChartData}
+                    data={sectorData}
                     cx="50%"
                     cy="50%"
                     innerRadius={60}
                     outerRadius={80}
-                    fill="#8884d8"
                     paddingAngle={5}
                     dataKey="value"
                   >
-                    {sectorChartData.map((entry, index) => (
+                    {sectorData.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: number | undefined) => `₹${value?.toLocaleString()}`} />
+                  <Tooltip formatter={(val: number) => `₹${val.toLocaleString()}`} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <h3 className="text-lg font-bold mb-4 text-slate-700">Stock Performance</h3>
+          {/* Bar Chart */}
+          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <h3 className="text-lg font-bold mb-4 text-slate-700">Performance vs Cost</h3>
             <div className="w-full h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data}>
+                <BarChart data={portfolio}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="ticker" tick={{fontSize: 10}} interval={0} />
+                  
+                  {/* CHANGED: Added 'hide' prop here to remove overlapping text */}
+                  <XAxis dataKey="ticker" hide />
+                  
                   <YAxis hide />
-                  <Tooltip formatter={(value: number | undefined) => `₹${value?.toLocaleString()}`} />
+                  <Tooltip formatter={(val: number) => `₹${val.toLocaleString()}`} />
                   <Legend />
                   <Bar dataKey="investment" name="Invested" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="presentValue" name="Current Value" fill="#4f46e5" radius={[4, 4, 0, 0]} />
@@ -143,8 +160,8 @@ export default function PortfolioDashboard() {
           </div>
         </section>
 
-        {/* --- REQUIREMENT: Specific Columns & Responsive Table --- */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        {/* Detailed Table */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -160,11 +177,12 @@ export default function PortfolioDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {data.map((stock) => {
+                {portfolio.map((stock) => {
                   const isProfit = stock.gainLoss >= 0;
-                  // Calculate Portfolio % dynamic (Frontend)
-                  const realPercent = totalPortfolioValue > 0 
-                    ? ((stock.presentValue / totalPortfolioValue) * 100).toFixed(2) 
+                  
+                  // Calculate the % of portfolio dynamically
+                  const percentage = totalValue > 0 
+                    ? ((stock.presentValue / totalValue) * 100).toFixed(2) 
                     : "0.00";
 
                   return (
@@ -180,7 +198,7 @@ export default function PortfolioDashboard() {
                       <td className={`p-5 text-right font-bold ${isProfit ? 'text-emerald-600' : 'text-red-500'}`}>
                         {isProfit ? '+' : ''}₹{Math.round(stock.gainLoss).toLocaleString()}
                       </td>
-                      <td className="p-5 text-right text-slate-500">{realPercent}%</td>
+                      <td className="p-5 text-right text-slate-500">{percentage}%</td>
                       <td className="p-5 text-right text-slate-400 text-sm">{stock.pe ? stock.pe.toFixed(2) : '-'}</td>
                     </tr>
                   );
