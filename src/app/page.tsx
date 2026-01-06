@@ -143,7 +143,7 @@ export default function PortfolioDashboard() {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="ticker" tick={{fontSize: 10}} interval={0} />
                   <YAxis hide />
-                  <Tooltip formatter={(value: number) => `₹${value.toLocaleString()}`} />
+                  <Tooltip formatter={(value: number | undefined) => `₹${value?.toLocaleString()}`} />
                   <Legend />
                   <Bar dataKey="investment" name="Invested" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="presentValue" name="Current Value" fill="#4f46e5" radius={[4, 4, 0, 0]} />
