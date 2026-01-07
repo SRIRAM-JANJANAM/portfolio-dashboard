@@ -16,6 +16,15 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Features
+* **Real-time Data:** Fetches live prices every 15 seconds.
+* **Unofficial API Proxy:** Bypasses CORS issues by routing requests through a secure Next.js backend API.
+* **Failsafe Mode:** If external APIs are down, the system generates realistic simulated data so the UI never looks broken.
+* **Interactive Charts:** Sector allocation (Pie) and Performance vs Cost (Bar).
+
+## ⚠️ Disclaimer
+This dashboard uses an unofficial Yahoo Finance endpoint. It is great for personal projects but may be rate-limited if deployed to thousands of users.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
